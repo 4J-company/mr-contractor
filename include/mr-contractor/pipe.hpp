@@ -8,7 +8,7 @@
 
 #include <vtll/vtll.hpp>
 
-#include <library/work_contract/work_contract.h>
+#include <work_contract/work_contract.h>
 
 namespace mr {
   // function to specialize
