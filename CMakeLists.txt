@@ -19,7 +19,10 @@ include(cmake/dependencies.cmake)
 
 # setup library
 add_library(${MR_CONTRACTOR_LIB_NAME} INTERFACE
-  include/mr-contractor/pipe.hpp
+  include/mr-contractor/executor.hpp
+  include/mr-contractor/par.hpp
+  include/mr-contractor/seq.hpp
+  include/mr-contractor/contractor.hpp
 )
 target_include_directories(${MR_CONTRACTOR_LIB_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
