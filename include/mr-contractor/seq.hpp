@@ -3,46 +3,17 @@
 #include <atomic>
 #include <cassert>
 #include <functional>
-#include <thread>
 #include <vector>
 
 #include <vtll/vtll.hpp>
 
-#include <work_contract/work_contract.h>
+#include "mr-contractor/executor.hpp"
 
 namespace mr {
   // function to specialize
   template <typename ResultT, typename ...Args> auto make_pipe_prototype();
 
-  struct Executor {
-  public:
-    inline static constexpr int threadcount = 8;
-
-    bcpp::work_contract_group group;
-    std::vector<std::jthread> threads;
-
-    static Executor & get() noexcept {
-      static Executor executor {};
-      return executor;
-    }
-
-  private:
-    Executor() noexcept {
-      for (int i = 0; i < threadcount; i++) {
-        threads.emplace_back(
-          [this](const auto &token) {
-            while (not token.stop_requested()) {
-              group.execute_next_contract();
-            }
-          }
-        );
-      }
-    }
-  };
-
   template <typename ...> struct PipePrototype;
-
-  using Contract = bcpp::work_contract;
 
   template <typename ResultT>
   struct PipeBase {
