@@ -71,12 +71,7 @@ namespace mr::detail {
 
   void create_contract_final(ParTaskImplInstance auto &task, const std::function<void(void)> &stage)
   {
-    // NOTE: cppreference says it's implementation defined whether CompletionFunc of a barrier is invoked
-    task.barrier = {task.contracts.size(), [&task, stage]() {
-      stage();
-      task.completion_flag.test_and_set(std::memory_order_release);
-      task.completion_flag.notify_one();
-    }};
+    task.on_finish = stage;
   }
 };
 

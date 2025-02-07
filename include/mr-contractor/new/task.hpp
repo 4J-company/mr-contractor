@@ -94,8 +94,16 @@ namespace mr::detail {
   template <size_t TaskNumber, typename InputT, typename ResultT>
     struct ParTaskImpl : TaskBase<ResultT> {
       InputT _initial;
+      std::function<void(void)> on_finish = [](){};
       std::unique_ptr<ResultT> object = std::make_unique<ResultT>();
-      std::barrier<std::function<void()>> barrier {TaskNumber + 1}; // NOTE: +1 to account for the calling thread waiting on this
+      std::barrier<std::function<void()>> barrier {
+        TaskNumber + 1, // NOTE: +1 to account for the calling thread waiting on this
+        [this]() {
+          on_finish();
+          this->completion_flag.test_and_set(std::memory_order_release);
+          this->completion_flag.notify_one();
+        }
+      };
 
       ParTaskImpl() = default;
       ~ParTaskImpl() override = default;
@@ -113,14 +121,11 @@ namespace mr::detail {
       }
 
       TaskBase<ResultT> & wait() override final {
-        printf("life is shit2\n");
         barrier.arrive_and_wait();
-        printf("life is shit3\n");
         return *this;
       }
 
       TaskBase<ResultT> & schedule() override final {
-        printf("life is shit1\n");
         update_object();
         for (auto &c : TaskBase<ResultT>::contracts) {
           c.schedule();
