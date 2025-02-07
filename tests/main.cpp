@@ -42,7 +42,15 @@ TEST(TaskTest, MultiStageSequence) {
   EXPECT_EQ(task->result(), 12);
 }
 
-TEST(TaskTest, Parallel) {
+
+TEST(TaskTest, SingleStageParallel) {
+  auto par = Parallel {add_one};
+  auto task = apply(par, {1});
+  task->schedule().wait();
+  EXPECT_EQ(task->result(), std::tuple(2));
+}
+
+TEST(TaskTest, MultipleStageParallel) {
   auto par = Parallel {add_one, multiply_by_two};
   auto task = apply(par, {1, 2});
   task->schedule().wait();
