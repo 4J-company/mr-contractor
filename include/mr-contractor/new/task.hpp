@@ -10,6 +10,8 @@
 #include "mr-contractor/executor.hpp"
 
 namespace mr::detail {
+  template <typename ResultT, typename ...ArgsT> auto make_task_prototype();
+
   template <typename ResultT>
     struct TaskBase {
       std::vector<Contract> contracts {};
