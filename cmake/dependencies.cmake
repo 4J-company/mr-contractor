@@ -7,6 +7,7 @@ file(
 include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
 
 CPMAddPackage("gh:4J-company/work_contract#main")
+CPMAddPackage("gh:4J-company/function47#master")
 
 if (NOT TARGET vtll)
   file(

@@ -4,19 +4,21 @@ It aims at providing performant solution to repeatable task graphs problem.
 
 ## Usage
 ```cpp
-#include "mr-contractor/pipe.hpp"
+#include "mr-contractor/contractor.hpp"
 
 int main() {
-    auto prototype = mr::PipePrototype {
-        std::function([](int x)   -> float    { return (float)x / 2; }),
-        std::function([](float x) -> int      { return (int)x;       }),
-        std::function([](int x)   -> unsigned { return std::abs(x);  })
+    auto prototype = mr::Sequence {
+        [](int x)   -> float    { return (float)x / 2; },
+        [](float x) -> int      { return (int)x;       },
+        [](int x)   -> unsigned { return std::abs(x);  }
     };
 
-    auto pipe = prototype.on(30);
-    pipe->schedule(); // schedules task described in prototype on argument 30
-    pipe->wait();
-    std::println("Result: {}", pipe2->result());
+    // create concrete schedulable task by binding invokable described in prototype above
+    auto task = mr::apply(prototype, 30);
+
+    task->schedule();
+    task->wait();
+    std::println("Result: {}", task->result());
 
     // declare pipe first
     // NOTE: only the prototype creating concrete pipes knows their type
