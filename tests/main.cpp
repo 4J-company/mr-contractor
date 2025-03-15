@@ -71,3 +71,23 @@ TEST(CompositeTest, SequenceOfParallelsOfSequences) {
   task->execute();
   EXPECT_EQ(task->result(), 179);
 }
+
+TEST(CompositeTest, Decomposition) {
+  auto task = mr::Sequence {
+    [](int x) -> std::tuple<int, int> { return {x, x * 2}; },
+    mr::Parallel {
+      mr::Sequence {  // Nested sequential steps
+        [](int a) -> int         { return a + 1; },
+        [](int b) -> std::string { return std::to_string(b); }
+      },
+      [](int c) -> float { return c * 0.5f; }
+    },
+    [](std::tuple<std::string, float> inputs) {
+      auto&& [str, flt] = inputs;
+      return str + " @ " + std::to_string(flt);
+    }
+  };
+
+  auto result = apply(task, 5)->execute().result();
+  EXPECT_EQ(result, "6 @ 5.000000"s);
+}
