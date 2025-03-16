@@ -3,117 +3,88 @@
 #include <function2/function2.hpp>
 
 namespace mr {
+
+  namespace details {
+
+    template <typename I, typename O>
+      struct InputTOutputT {
+        using InputT = I;
+        using OutputT = O;
+      };
+
+  }
+
   // Primary template declaration
   template<typename FuncT>
     struct CallableTraits;
 
+  // Specialization for plain function types
+  template<typename R, typename A>
+    struct CallableTraits<R(A)> : details::InputTOutputT<A, R> {};
+
   // Specialization for function pointers
   template<typename R, typename A>
-    struct CallableTraits<R(*)(A)> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableTraits<R(*)(A)> : details::InputTOutputT<A, R> {};
 
   // Specializations for fu2
-  template<typename Signature>
-    struct CallableTraits<fu2::function<Signature>> {
-      private:
-        template<typename T>
-          struct DecomposeFunction;
+  template<typename R, typename A>
+    struct CallableTraits<fu2::function<R(A)>> : details::InputTOutputT<A, R> {};
 
-        template<typename R, typename A>
-          struct DecomposeFunction<R(A)> {
-            using InputT = A;
-            using OutputT = R;
-          };
+  template<typename R, typename A>
+    struct CallableTraits<fu2::function_view<R(A)>> : details::InputTOutputT<A, R> {};
 
-      public:
-        using InputT = typename DecomposeFunction<Signature>::InputT;
-        using OutputT = typename DecomposeFunction<Signature>::OutputT;
-    };
-
-  template<typename Signature>
-    struct CallableTraits<fu2::function_view<Signature>> {
-      private:
-        template<typename T>
-          struct DecomposeFunction;
-
-        template<typename R, typename A>
-          struct DecomposeFunction<R(A)> {
-            using InputT = A;
-            using OutputT = R;
-          };
-
-      public:
-        using InputT = typename DecomposeFunction<Signature>::InputT;
-        using OutputT = typename DecomposeFunction<Signature>::OutputT;
-    };
-
-  template<typename Signature>
-    struct CallableTraits<fu2::unique_function<Signature>> {
-      private:
-        template<typename T>
-          struct DecomposeFunction;
-
-        template<typename R, typename A>
-          struct DecomposeFunction<R(A)> {
-            using InputT = A;
-            using OutputT = R;
-          };
-
-      public:
-        using InputT = typename DecomposeFunction<Signature>::InputT;
-        using OutputT = typename DecomposeFunction<Signature>::OutputT;
-    };
+  template<typename R, typename A>
+    struct CallableTraits<fu2::unique_function<R(A)>> : details::InputTOutputT<A, R> {};
 
   // Helper to decompose member function pointer types (operator() for functors/lambdas)
   template<typename T>
-    struct CallableTraitsImpl;
+    struct CallableMemberTraits;
 
-  // Non-const versions
+  // non-volatile specializations
   template<typename R, typename C, typename A>
-    struct CallableTraitsImpl<R (C::*)(A)> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableMemberTraits<R (C::*)(A)> : details::InputTOutputT<A, R> {};
 
   template<typename R, typename C, typename A>
-    struct CallableTraitsImpl<R (C::*)(A) const> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableMemberTraits<R (C::*)(A) const> : details::InputTOutputT<A, R> {};
+  
+  template<typename R, typename C, typename A>
+    struct CallableMemberTraits<R (C::*)(A) &> : details::InputTOutputT<A, R> {};
+  
+  template<typename R, typename C, typename A>
+    struct CallableMemberTraits<R (C::*)(A) const &> : details::InputTOutputT<A, R> {};
+  
+  template<typename R, typename C, typename A>
+    struct CallableMemberTraits<R (C::*)(A) &&> : details::InputTOutputT<A, R> {};
+  
+  template<typename R, typename C, typename A>
+    struct CallableMemberTraits<R (C::*)(A) const &&> : details::InputTOutputT<A, R> {};
+
+  // volatile specializations
+  template<typename R, typename C, typename A>
+    struct CallableMemberTraits<R(C::*)(A) volatile> : details::InputTOutputT<A, R> {};
 
   template<typename R, typename C, typename A>
-    struct CallableTraitsImpl<R (C::*)(A) &> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableMemberTraits<R(C::*)(A) const volatile> : details::InputTOutputT<A, R> {};
 
   template<typename R, typename C, typename A>
-    struct CallableTraitsImpl<R (C::*)(A) const &> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableMemberTraits<R(C::*)(A) volatile &> : details::InputTOutputT<A, R> {};
 
   template<typename R, typename C, typename A>
-    struct CallableTraitsImpl<R (C::*)(A) &&> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableMemberTraits<R(C::*)(A) const volatile &> : details::InputTOutputT<A, R> {};
 
   template<typename R, typename C, typename A>
-    struct CallableTraitsImpl<R (C::*)(A) const &&> {
-      using InputT = A;
-      using OutputT = R;
-    };
+    struct CallableMemberTraits<R(C::*)(A) volatile &&> : details::InputTOutputT<A, R> {};
+
+  template<typename R, typename C, typename A>
+    struct CallableMemberTraits<R(C::*)(A) const volatile &&> : details::InputTOutputT<A, R> {};
 
   // Primary template for functors, lambdas, and other callable objects
   template<typename FuncT>
     struct CallableTraits {
       private:
-        using BareT = std::remove_cv_t<std::remove_reference_t<FuncT>>;
+        using BareT = std::remove_cvref_t<FuncT>;
         using CallOperatorType = decltype(&BareT::operator());
-        using Impl = CallableTraitsImpl<CallOperatorType>;
+        using Impl = CallableMemberTraits<std::remove_cvref_t<CallOperatorType>>;
 
       public:
         using InputT = typename Impl::InputT;
