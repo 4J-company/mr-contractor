@@ -21,13 +21,7 @@ if (NOT TARGET vtll)
 endif()
 
 if (MR_CONTRACTOR_ENABLE_BENCHMARK)
-  CPMFindPackage(
-    NAME benchmark
-    GITHUB_REPOSITORY google/benchmark
-    GIT_TAG main
-    OPTIONS
-      "BENCHMARK_ENABLE_TESTING OFF"
-  )
+  include(cmake/benchdeps.cmake)
 endif()
 
 if (benchmark_ADDED)

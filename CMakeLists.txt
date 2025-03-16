@@ -42,6 +42,9 @@ endif ()
 
 # bench
 if (MR_CONTRACTOR_ENABLE_BENCHMARK)
-  # add_executable(${MR_CONTRACTOR_BENCH_NAME} bench/main.cpp)
-  # target_link_libraries(${MR_CONTRACTOR_BENCH_NAME} PRIVATE ${MR_CONTRACTOR_LIB_NAME} benchmark)
+  add_executable(${MR_CONTRACTOR_BENCH_NAME} bench/main.cpp)
+  target_link_libraries(${MR_CONTRACTOR_BENCH_NAME} PRIVATE
+    ${MR_CONTRACTOR_LIB_NAME}
+    ${MR_CONTRACTOR_BENCH_DEPS}
+  )
 endif ()
