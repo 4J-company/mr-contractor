@@ -50,7 +50,7 @@ namespace mr::detail {
       ~SeqTaskImpl() override = default;
 
       SeqTaskImpl(VariantT &&initial)
-        : _initial(initial)
+        : _initial(std::move(initial))
       {}
 
       SeqTaskImpl(FunctionWrapper<VariantT()> getter)
@@ -106,7 +106,7 @@ namespace mr::detail {
         auto &v = *_object.get();
         auto &r = std::get<ResultT>(v);
 
-        return std::move(r);
+        return r;
       }
     };
 
