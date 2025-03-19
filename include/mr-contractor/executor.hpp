@@ -8,7 +8,7 @@
 namespace mr {
   struct Executor {
   public:
-    inline static constexpr int threadcount = 8;
+    inline static int threadcount = std::thread::hardware_concurrency();
 
     bcpp::work_contract_group group;
     std::vector<std::jthread> threads;
