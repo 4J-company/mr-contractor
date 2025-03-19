@@ -10,8 +10,6 @@
 #include "traits.hpp"
 
 namespace mr::detail {
-  template <typename ResultT, typename ...ArgsT> auto make_task_prototype();
-
   // TODO:
   //    - introduce `DeferredTask`, which takes `getter` instead of `initial`
   //        - make `NestedTaskT` concept which is Deferred<Par/Seq>Task
