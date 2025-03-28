@@ -42,7 +42,7 @@ namespace mr::detail {
       NestedTasksTupleT nested_tasks;
       std::array<Contract, NumOfTasks> contracts {};
 
-      std::atomic_flag completion_flag = false;
+      std::atomic_flag completion_flag{};
 
       SeqTaskImpl() = default;
       ~SeqTaskImpl() override = default;
@@ -119,16 +119,16 @@ namespace mr::detail {
       InputT _initial;
 
       FunctionWrapper<InputT(void)> _getter = [this]() -> InputT { return _initial; };
-      FunctionWrapper<void(void)> _on_finish = [](){};
+      FunctionWrapper<void(void) noexcept> _on_finish = []() noexcept {};
 
       NestedTasksTupleT nested_tasks;
       std::array<Contract, NumOfTasks> contracts {};
 
       InputT _input;
       std::unique_ptr<ResultT> _object = std::make_unique<ResultT>();
-      std::barrier<FunctionView<void()>> _barrier {
+      std::barrier<FunctionView<void() noexcept>> _barrier {
         NumOfTasks + 1, // NOTE: +1 to account for the calling thread waiting on this
-        FunctionView<void(void)>(_on_finish)
+        FunctionView<void(void) noexcept>(_on_finish)
       };
 
       ParTaskImpl() = default;

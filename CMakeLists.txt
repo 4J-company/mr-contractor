@@ -6,9 +6,11 @@ set(MR_CONTRACTOR_LIB_NAME     mr-contractor-lib)
 set(MR_CONTRACTOR_BENCH_NAME   mr-contractor-bench)
 set(MR_CONTRACTOR_TESTS_NAME   mr-contractor-tests)
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 # options
-option(MR_CONTRACTOR_ENABLE_BENCHMARK "Whether benchmarks are downloaded and built" OFF)
-option(MR_CONTRACTOR_ENABLE_TESTING   "Whether tests are downloaded and built"      OFF)
+option(MR_CONTRACTOR_ENABLE_BENCHMARK "Whether benchmarks are downloaded and built" ON)
+option(MR_CONTRACTOR_ENABLE_TESTING   "Whether tests are downloaded and built"      ON)
 
 project(
   ${MR_CONTRACTOR_PROJECT_NAME}
