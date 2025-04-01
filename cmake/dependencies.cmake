@@ -9,15 +9,14 @@ include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
 CPMAddPackage("gh:4J-company/work_contract#main")
 CPMAddPackage("gh:4J-company/function47#master")
 
-if (NOT TARGET vtll)
+if (NOT TARGET mp)
   file(
     DOWNLOAD
-    https://raw.githubusercontent.com/hlavacs/ViennaTypeListLibrary/refs/heads/main/include/VTLL.h
-    ${CMAKE_CURRENT_BINARY_DIR}/_deps/vtll-src/vtll/vtll.hpp
-    EXPECTED_HASH SHA256=0446e7cde3e3a4f1289d8db630e9c3bb068d1a66356a3f3747b1777d9a4d7268
+    https://raw.githubusercontent.com/qlibs/mp/main/mp
+    ${CMAKE_CURRENT_BINARY_DIR}/_deps/mp-src/mp/mp
   )
-  add_library(vtll INTERFACE "")
-  target_include_directories(vtll INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/_deps/vtll-src/)
+  add_library(mp INTERFACE "")
+  target_include_directories(mp INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/_deps/mp-src/)
 endif()
 
 if (MR_CONTRACTOR_ENABLE_BENCHMARK)

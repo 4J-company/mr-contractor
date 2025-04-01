@@ -104,7 +104,7 @@ namespace mr::detail {
         auto &v = *_object.get();
         auto &r = std::get<ResultT>(v);
 
-        return r;
+        return std::move(r);
       }
     };
 

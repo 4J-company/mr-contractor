@@ -1,8 +1,6 @@
 #pragma once
 
-#include <vtll/vtll.hpp>
-
-#include "mr-contractor/def.hpp"
+#include "def.hpp"
 #include "traits.hpp"
 #include "task.hpp"
 
@@ -47,17 +45,13 @@ namespace mr {
   template <StageT ...StageTs> requires (sizeof...(StageTs) > 0)
     struct Parallel<StageTs...> {
     private:
-      using InputsListT = vtll::type_list<input_t<StageTs>...>;
-      using OutputsListT = vtll::type_list<output_t<StageTs>...>;
-      using InputOutputListT = vtll::type_list<input_t<StageTs>..., output_t<StageTs>...>;
-      using UniqueInputOutputListT = vtll::remove_duplicates<InputOutputListT>;
-
     public:
       // for external use
-      using InputT = vtll::to_tuple<InputsListT>;
-      using OutputT = vtll::to_tuple<OutputsListT>;
-      using VariantT = vtll::to_variant<UniqueInputOutputListT>;
-      using TupleT = vtll::to_tuple<vtll::transform<vtll::type_list<StageTs...>, mr::detail::to_wrapper_t>>;
+      using InputT = mr::to_tuple_t<input_t<StageTs>...>;
+      using OutputT = mr::to_tuple_t<output_t<StageTs>...>;
+      using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
+      using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
+
       using NestedTasksTupleT = std::tuple<>;
       using TaskT = Task<OutputT>;
       using TaskImplT = detail::ParTaskImpl<sizeof...(StageTs), InputT, OutputT, NestedTasksTupleT>;
@@ -79,26 +73,20 @@ namespace mr {
     struct Sequence<StageTs...> {
     private:
       // for internal use
-      using InputsListT = vtll::type_list<input_t<StageTs>...>;
-      using OutputsListT = vtll::type_list<output_t<StageTs>...>;
-      using InputOutputListT = vtll::type_list<input_t<StageTs>..., output_t<StageTs>...>;
-
-      static_assert(vtll::is_same_list<
-          vtll::erase_Nth<InputsListT, 0>,
-          vtll::erase_Nth<OutputsListT, vtll::size<OutputsListT>::value - 1>
-        >::value, "Invalid transform chain (type mismatch)");
-
-      using UniqueInputOutputListT = vtll::remove_duplicates<InputOutputListT>;
+      static_assert(
+          mr::erase_v(0, mp::vector{mp::meta<input_t<StageTs>>...}) ==
+          mr::erase_v(sizeof...(StageTs) - 1, mp::vector{mp::meta<output_t<StageTs>>...})
+        , "Invalid transform chain (type mismatch)");
 
     public:
       // for external use
-      using InputT = vtll::front<InputsListT>;
-      using OutputT = vtll::back<OutputsListT>;
-      using VariantT = vtll::to_variant<UniqueInputOutputListT>;
+      using InputT = at_t<0, input_t<StageTs>...>;
+      using OutputT = at_t<sizeof...(StageTs)-1, output_t<StageTs>...>;
+      using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
       using NestedTasksTupleT = std::tuple<>;
-      using TupleT = vtll::to_tuple<vtll::transform<vtll::type_list<StageTs...>, mr::detail::to_wrapper_t>>;
+      using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
       using TaskT = Task<OutputT>;
-      using TaskImplT = detail::SeqTaskImpl<vtll::size<OutputsListT>::value, VariantT, OutputT, NestedTasksTupleT>;
+      using TaskImplT = detail::SeqTaskImpl<sizeof...(StageTs), VariantT, OutputT, NestedTasksTupleT>;
 
       TupleT stages;
       constexpr Sequence(StageTs... s) : stages(detail::to_wrapper_v(std::move(s))...) {}

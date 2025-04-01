@@ -31,14 +31,14 @@ target_include_directories(${MR_CONTRACTOR_LIB_NAME} INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(${MR_CONTRACTOR_LIB_NAME} INTERFACE work_contract vtll function2)
+target_link_libraries(${MR_CONTRACTOR_LIB_NAME} INTERFACE work_contract mp function2)
 target_compile_features(${MR_CONTRACTOR_LIB_NAME} INTERFACE cxx_std_23)
 
 # tests
 if (MR_CONTRACTOR_ENABLE_TESTING)
   add_executable(${MR_CONTRACTOR_TESTS_NAME} tests/main.cpp)
   target_link_libraries(${MR_CONTRACTOR_TESTS_NAME} PRIVATE ${MR_CONTRACTOR_LIB_NAME} gtest_main)
-endif ()
+endif()
 
 # bench
 if (MR_CONTRACTOR_ENABLE_BENCHMARK)
@@ -47,4 +47,4 @@ if (MR_CONTRACTOR_ENABLE_BENCHMARK)
     ${MR_CONTRACTOR_LIB_NAME}
     ${MR_CONTRACTOR_BENCH_DEPS}
   )
-endif ()
+endif()
