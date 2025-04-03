@@ -30,13 +30,13 @@ namespace mr::detail {
       }
     };
 
-  template <size_t NumOfTasks, typename VariantT, typename ResultT>
+  template <size_t NumOfTasks, typename VariantT, typename InputT, typename ResultT>
     struct SeqTaskImpl : TaskBase<ResultT> {
       static constexpr auto size = NumOfTasks;
 
-      VariantT _initial;
+      InputT _initial;
 
-      FunctionWrapper<VariantT(void)> _getter = [this]() -> VariantT { return _initial; };
+      FunctionWrapper<InputT(void)> _getter = [this]() -> InputT { return _initial; };
       std::unique_ptr<VariantT> _object;
 
       std::array<Contract, NumOfTasks> contracts {};
@@ -46,11 +46,11 @@ namespace mr::detail {
       SeqTaskImpl() = default;
       ~SeqTaskImpl() override = default;
 
-      SeqTaskImpl(VariantT &&initial)
+      SeqTaskImpl(InputT &&initial)
         : _initial(std::move(initial))
       {}
 
-      SeqTaskImpl(FunctionWrapper<VariantT()> getter)
+      SeqTaskImpl(FunctionWrapper<InputT()> getter)
         : _getter(std::move(getter))
       {}
 

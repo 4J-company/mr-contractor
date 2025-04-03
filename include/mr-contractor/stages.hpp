@@ -84,7 +84,7 @@ namespace mr {
       using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
       using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
       using TaskT = Task<OutputT>;
-      using TaskImplT = detail::SeqTaskImpl<sizeof...(StageTs), VariantT, OutputT>;
+      using TaskImplT = detail::SeqTaskImpl<sizeof...(StageTs), VariantT, InputT, OutputT>;
 
       TupleT stages;
       constexpr Sequence(StageTs... s) : stages(detail::to_wrapper_v(std::move(s))...) {}
