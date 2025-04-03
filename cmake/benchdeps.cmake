@@ -33,7 +33,7 @@ target_compile_features(platform_config INTERFACE cxx_std_20)
 
 if (MSVC)
   target_compile_options(platform_config INTERFACE
-    /O2 /Ob2 /DNDEBUG /Zc:inline
+     /Ob2 /DNDEBUG /Zc:inline
   )
 else()
   target_compile_options(platform_config INTERFACE

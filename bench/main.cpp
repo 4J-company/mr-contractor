@@ -3,6 +3,7 @@
 #include <vector>
 #include <atomic>
 #include <thread>
+#include <chrono>
 
 // ================= Platform-Neutral Timing =================
 using Clock = std::chrono::high_resolution_clock;
