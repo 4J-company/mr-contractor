@@ -52,9 +52,8 @@ namespace mr {
       using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
       using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
 
-      using NestedTasksTupleT = std::tuple<>;
       using TaskT = Task<OutputT>;
-      using TaskImplT = detail::ParTaskImpl<sizeof...(StageTs), InputT, OutputT, NestedTasksTupleT>;
+      using TaskImplT = detail::ParTaskImpl<sizeof...(StageTs), InputT, OutputT>;
 
       TupleT stages;
       constexpr Parallel(StageTs... s) : stages(std::forward_as_tuple(detail::to_wrapper_v(std::move(s))...)) {}
@@ -83,10 +82,9 @@ namespace mr {
       using InputT = at_t<0, input_t<StageTs>...>;
       using OutputT = at_t<sizeof...(StageTs)-1, output_t<StageTs>...>;
       using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
-      using NestedTasksTupleT = std::tuple<>;
       using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
       using TaskT = Task<OutputT>;
-      using TaskImplT = detail::SeqTaskImpl<sizeof...(StageTs), VariantT, OutputT, NestedTasksTupleT>;
+      using TaskImplT = detail::SeqTaskImpl<sizeof...(StageTs), VariantT, OutputT>;
 
       TupleT stages;
       constexpr Sequence(StageTs... s) : stages(detail::to_wrapper_v(std::move(s))...) {}

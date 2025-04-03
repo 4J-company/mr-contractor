@@ -30,7 +30,7 @@ namespace mr::detail {
       }
     };
 
-  template <size_t NumOfTasks, typename VariantT, typename ResultT, typename NestedTasksTupleT>
+  template <size_t NumOfTasks, typename VariantT, typename ResultT>
     struct SeqTaskImpl : TaskBase<ResultT> {
       static constexpr auto size = NumOfTasks;
 
@@ -39,7 +39,6 @@ namespace mr::detail {
       FunctionWrapper<VariantT(void)> _getter = [this]() -> VariantT { return _initial; };
       std::unique_ptr<VariantT> _object;
 
-      NestedTasksTupleT nested_tasks;
       std::array<Contract, NumOfTasks> contracts {};
 
       std::atomic_flag completion_flag{};
@@ -62,7 +61,6 @@ namespace mr::detail {
         : _initial(std::move(other._initial))
         , _getter(std::move(other._getter))
         , _object(std::move(other._object))
-        , nested_tasks(std::move(other.nested_tasks))
         , contracts(std::move(other.contracts))
         , completion_flag(other.completion_flag.test()) {
           other.completion_flag.clear();
@@ -72,7 +70,6 @@ namespace mr::detail {
           _initial = std::move(other._initial);
           _getter = std::move(other._getter);
           _object = std::move(other._object);
-          nested_tasks = std::move(other.nested_tasks);
           contracts = std::move(other.contracts);
           if (other.completion_flag.test()) {
             completion_flag.test_and_set();
@@ -112,7 +109,7 @@ namespace mr::detail {
   template <size_t N, typename ...Ts> constexpr bool is_seq_task_impl<SeqTaskImpl<N, Ts...>> = true;
   template <typename T> concept SeqTaskImplInstance = is_seq_task_impl<T>;
 
-  template <size_t NumOfTasks, typename InputT, typename ResultT, typename NestedTasksTupleT>
+  template <size_t NumOfTasks, typename InputT, typename ResultT>
     struct ParTaskImpl : TaskBase<ResultT> {
       static constexpr auto size = NumOfTasks;
 
@@ -121,7 +118,6 @@ namespace mr::detail {
       FunctionWrapper<InputT(void)> _getter = [this]() -> InputT { return _initial; };
       FunctionWrapper<void(void) noexcept> _on_finish = []() noexcept {};
 
-      NestedTasksTupleT nested_tasks;
       std::array<Contract, NumOfTasks> contracts {};
 
       InputT _input;
