@@ -103,14 +103,6 @@ namespace mr {
 
   template <StageT S> typename S::TaskT apply(const S &stage, FunctionWrapper<typename S::InputT(void)> &&getter);
   template <StageT S> typename S::TaskT apply(const S &stage, typename S::InputT &&initial);
-
-  template <typename ResultT, typename ...Args> ApplicableT decltype(auto) make_task_prototype() {
-    static_assert(false, "You need to overload default implementation, \n"
-                         "so that the function returns valid Sequence/Parallel. \n"
-                         "Note that after Sequence/Parallel destruction, \n"
-                         " all Tasks created from it become invalid."
-                         );
-  };
 }
 
 namespace mr::detail {
