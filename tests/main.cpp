@@ -91,3 +91,56 @@ TEST(CompositeTest, Decomposition) {
   auto result = apply(task, 5)->execute().result();
   EXPECT_EQ(result, "6 @ 5.000000"s);
 }
+
+TEST(ReferenceTest, Sequence) {
+  auto seq1 = mr::Sequence {
+    [](int a) -> int { return a + 47; }
+  };
+  auto seq2 = mr::Sequence {
+    [](int a) -> int { return a + 102; }
+  };
+  auto func = [b = std::make_unique<int>(10)](int a) { return a + 30 + *b; };
+
+  auto task = mr::Sequence {
+    std::ref(seq1),
+    std::move(seq2),
+    std::ref(func)
+  };
+
+  // test using func
+  auto lambda_res = func(7);
+  EXPECT_EQ(lambda_res, 47);
+
+  // test using subsequence
+  auto subres = apply(seq1, 0)->execute().result();
+  EXPECT_EQ(subres, 0 + 47);
+
+  auto result = apply(task, 0)->execute().result();
+  EXPECT_EQ(result, 0 + 47 + 102 + 30 + 10);
+}
+
+TEST(ReferenceTest, Parallel) {
+  auto internal_seq = mr::Sequence {
+    [](int a) -> int { return a + 47; }
+  };
+  auto par = mr::Parallel {
+    [](int a) -> int { return a + 102; },
+    std::ref(internal_seq)
+  };
+  auto external_seq = mr::Sequence {
+    std::ref(par),
+    [](std::tuple<int, int> t) -> int {
+      auto [a, b] = t;
+      return a + b;
+    }
+  };
+
+  auto int_res = mr::apply(internal_seq, 0)->execute().result();
+  EXPECT_EQ(int_res, 47);
+
+  auto par_res = mr::apply(par, std::make_tuple(0, 0))->execute().result();
+  EXPECT_EQ(par_res, std::make_tuple(0 + 102, 0 + 47));
+
+  auto res = mr::apply(external_seq, std::make_tuple(0, 0))->execute().result();
+  EXPECT_EQ(res, 0 + 102 + 0 + 47);
+}

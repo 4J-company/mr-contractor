@@ -7,19 +7,14 @@
 #include "task.hpp"
 
 namespace mr::detail {
-  template <typename T> concept ApplicableT = ParallelT<T> || SequenceT<T>;
-
   // size_t I: index of a Stage in target task
   //
   // Below are the following overloads:
   //   add(<Seq/Par>TaskImpl, <Func/Seq/Par>)
 
   // add(Seq, Func)
-  template <size_t I, typename StageSignatureT>
-    inline void add(SeqTaskImplInstance auto &task, FunctionView<StageSignatureT> stage) {
-      using InputT = input_t<decltype(stage)>;
-      using OutputT = output_t<decltype(stage)>;
-
+  template <size_t I, typename OutputT, typename InputT>
+    inline void add(SeqTaskImplInstance auto &task, FunctionView<OutputT(InputT)> stage) {
       auto contract = Executor::get().group.create_contract(
         [&task, stage]() mutable {
           if constexpr (std::is_same_v<InputT, void>) {
@@ -41,11 +36,8 @@ namespace mr::detail {
     }
 
   // add(Par, Func)
-  template <size_t I, typename StageSignatureT>
-    inline void add(ParTaskImplInstance auto &task, FunctionView<StageSignatureT> stage) {
-      using InputT = input_t<decltype(stage)>;
-      using OutputT = output_t<decltype(stage)>;
-
+  template <size_t I, typename OutputT, typename InputT>
+    inline void add(ParTaskImplInstance auto &task, FunctionView<OutputT(InputT)> stage) {
       auto contract = Executor::get().group.create_contract(
         [&task, stage]() mutable {
           std::get<I>(*task._object.get()) = stage(std::move(std::get<I>(task._input)));
@@ -61,14 +53,19 @@ namespace mr::detail {
       task.contracts[I] = std::move(contract);
     }
 
+// These functions are (maybe temporary) unnecessary.
+// If any of them are not used in mr-importer, we will delete them
+#if 0
   // add(Seq, <Par/Seq>)
-  template <size_t I>
-    inline void add(SeqTaskImplInstance auto &task, const ApplicableT auto &stage) {
-      using InputT = typename std::remove_cvref_t<decltype(stage)>::InputT;
-      using OutputT = typename std::remove_cvref_t<decltype(stage)>::OutputT;
+  // TODO(dk6): rename T to StageT after concepts names refactoring
+  template <size_t I, ApplicableT T>
+    inline void add(SeqTaskImplInstance auto &task, const T &stage) {
+      using InputT = typename T::InputT;
+      using OutputT = typename T::OutputT;
 
-      FunctionWrapper<InputT(void)> getter =
-        [&task]() { return std::get<InputT>(*task._object.get()); };
+      FunctionWrapper<InputT(void)> getter = [&task]() {
+        return std::get<InputT>(*task._object.get());
+      };
 
       auto nested_task = apply(stage, std::move(getter));
 
@@ -82,12 +79,14 @@ namespace mr::detail {
     }
 
   // add(Par, <Par/Seq>)
-  template <size_t I>
-    inline void add(ParTaskImplInstance auto &task, const ApplicableT auto &stage) {
-      using InputT = typename std::remove_cvref_t<decltype(stage)>::InputT;
-      using OutputT = typename std::remove_cvref_t<decltype(stage)>::OutputT;
+  template <size_t I, ApplicableT T>
+    inline void add(ParTaskImplInstance auto &task, const T &stage) {
+      using InputT = typename T::InputT;
+      using OutputT = typename T::OutputT;
 
-      FunctionWrapper<InputT(void)> getter = [&task]() { return std::get<I>(*task._object.get()); };
+      FunctionWrapper<InputT(void)> getter = [&task]() {
+        return std::get<I>(*task._input);
+      };
 
       auto nested_task = apply(stage, std::move(getter));
 
@@ -99,9 +98,55 @@ namespace mr::detail {
 
       add<I>(task, std::move(callable));
     }
+
+  // add(Seq, StageRef)
+  template <size_t I, ApplicableRefT RefT>
+    inline void add(SeqTaskImplInstance auto &task, RefT stage) {
+      using InternalT = typename RefT::type;
+
+      using InputT = input_t<InternalT>;
+      using OutputT = output_t<InternalT>;
+
+      FunctionWrapper<InputT(void)> getter = [&task]() {
+        return std::get<InputT>(*task._object.get());
+      };
+
+      auto nested_task = apply(stage.get(), std::move(getter));
+      FunctionWrapper<OutputT(void)> callable =
+        [nt = std::move(nested_task)]() {
+          nt->execute();
+          return nt->result();
+        };
+
+      add<I>(task, FunctionView<OutputT(void)>(callable));
+    }
+
+  // add(Par, StageRef)
+  template <size_t I, ApplicableRefT RefT>
+    inline void add(ParTaskImplInstance auto &task, RefT stage) {
+      using InternalT = typename RefT::type;
+
+      using InputT = input_t<InternalT>;
+      using OutputT = output_t<InternalT>;
+
+      FunctionWrapper<InputT(void)> getter = [&task]() {
+        return std::get<I>(*task._input);
+      };
+
+      auto nested_task = apply(stage.get(), std::move(getter));
+      FunctionWrapper<OutputT(void)> callable =
+        [nt = std::move(nested_task)]() {
+          nt->execute();
+          return nt->result();
+        };
+
+      add<I>(task, FunctionView<OutputT(void)>(callable));
+    }
+#endif
 }
 
 namespace mr {
+  // TODO(dk6): use ApplicableT instead StageT
   template <StageT S>
     typename S::TaskT apply(const S &stage, FunctionWrapper<typename S::InputT(void)> &&getter) {
       using TaskImplT = S::TaskImplT;
