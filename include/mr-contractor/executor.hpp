@@ -18,9 +18,13 @@ namespace mr {
       return executor;
     }
 
+    void set_thread_count(int n) {
+      resize(n);
+    }
+
   private:
-    Executor() noexcept {
-      for (int i = 0; i < threadcount; i++) {
+    void resize(int n) {
+      for (int i = 0; i < n; i++) {
         threads.emplace_back(
           [this](const auto &token) {
             while (not token.stop_requested()) {
@@ -29,6 +33,10 @@ namespace mr {
           }
         );
       }
+    }
+
+    Executor() noexcept {
+      resize(threadcount);
     }
   };
 }

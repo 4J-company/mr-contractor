@@ -3,11 +3,9 @@
 #include <atomic>
 #include <barrier>
 #include <cstddef>
-#include <vector>
 #include <memory>
 
 #include "mr-contractor/def.hpp"
-#include "traits.hpp"
 
 namespace mr::detail {
   // TODO:
