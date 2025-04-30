@@ -124,7 +124,7 @@ namespace mr {
     };
 
   template <StageT S> typename S::TaskT apply(const S &stage, FunctionWrapper<typename S::InputT(void)> &&getter);
-  template <StageT S> typename S::TaskT apply(const S &stage, typename S::InputT &&initial);
+  template <StageT S> typename S::TaskT apply(const S &stage, typename S::InputT initial);
 }
 
 namespace mr::detail {

@@ -161,7 +161,7 @@ namespace mr {
     }
 
   template <StageT S>
-    typename S::TaskT apply(const S &stage, typename S::InputT &&initial) {
+    typename S::TaskT apply(const S &stage, typename S::InputT initial) {
       using TaskImplT = S::TaskImplT;
       using TaskT = S::TaskT;
 
