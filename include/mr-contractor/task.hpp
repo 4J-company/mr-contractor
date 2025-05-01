@@ -46,7 +46,7 @@ namespace mr::detail {
       SeqTaskImpl() = default;
       ~SeqTaskImpl() override = default;
 
-      SeqTaskImpl(InputT &&initial)
+      SeqTaskImpl(InputT initial)
         : _initial(std::move(initial))
       {}
 
@@ -135,8 +135,8 @@ namespace mr::detail {
       ParTaskImpl(ParTaskImpl &&) = default;
       ParTaskImpl & operator=(ParTaskImpl &&) = default;
 
-      ParTaskImpl(InputT &&initial)
-        : _initial(initial)
+      ParTaskImpl(InputT initial)
+        : _initial(std::move(initial))
       {}
 
       ParTaskImpl(FunctionWrapper<InputT(void)> getter)

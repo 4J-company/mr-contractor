@@ -46,16 +46,16 @@ namespace mr {
 
   template<typename R, typename C, typename A>
     struct CallableMemberTraits<R (C::*)(A) const> : details::InputTOutputT<A, R> {};
-  
+
   template<typename R, typename C, typename A>
     struct CallableMemberTraits<R (C::*)(A) &> : details::InputTOutputT<A, R> {};
-  
+
   template<typename R, typename C, typename A>
     struct CallableMemberTraits<R (C::*)(A) const &> : details::InputTOutputT<A, R> {};
-  
+
   template<typename R, typename C, typename A>
     struct CallableMemberTraits<R (C::*)(A) &&> : details::InputTOutputT<A, R> {};
-  
+
   template<typename R, typename C, typename A>
     struct CallableMemberTraits<R (C::*)(A) const &&> : details::InputTOutputT<A, R> {};
 

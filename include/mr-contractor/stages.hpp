@@ -40,7 +40,25 @@ namespace mr {
   template <typename ...Us> constexpr bool is_parallel<Parallel<Us...>> = true;
   template <typename T> concept ParallelT = is_parallel<T>;
 
-  template <typename T> concept StageT = Callable<T> || ParallelT<T> || SequenceT<T>;
+  template <typename T> concept ApplicableT = ParallelT<T> || SequenceT<T>;
+
+  template <typename T> constexpr bool is_stage_reference = false;
+  template <ApplicableT T> constexpr bool is_stage_reference<std::reference_wrapper<T>> = true;
+  template <typename T> concept ApplicableRefT = is_stage_reference<T>;
+
+  template <typename T> concept StageT = Callable<T> || ApplicableT<T> || ApplicableRefT<T>;
+
+  namespace detail {
+    template <ApplicableT T>
+      struct to_wrapper<T> {
+        using type = FunctionWrapper<typename T::OutputT(typename T::InputT)>;
+      };
+
+    template <ApplicableT T>
+      struct to_wrapper<std::reference_wrapper<T>> {
+        using type = typename to_wrapper<T>::type;
+      };
+  }
 
   template <StageT ...StageTs> requires (sizeof...(StageTs) > 0)
     struct Parallel<StageTs...> {
@@ -99,18 +117,17 @@ namespace mr {
   template <typename ...StageTs>
     Sequence(StageTs... stages) -> Sequence<StageTs...>;
 
-  template <typename T> concept ApplicableT = ParallelT<T> || SequenceT<T>;
+  template <StageT Stage>
+    struct CallableTraits<std::reference_wrapper<Stage>> {
+      using InputT = input_t<Stage>;
+      using OutputT = output_t<Stage>;
+    };
 
   template <StageT S> typename S::TaskT apply(const S &stage, FunctionWrapper<typename S::InputT(void)> &&getter);
-  template <StageT S> typename S::TaskT apply(const S &stage, typename S::InputT &&initial);
+  template <StageT S> typename S::TaskT apply(const S &stage, typename S::InputT initial);
 }
 
 namespace mr::detail {
-  template <ApplicableT T>
-    struct to_wrapper<T> {
-      using type = FunctionWrapper<typename T::OutputT(typename T::InputT)>;
-    };
-
   template <typename T>
     to_wrapper_t<T> to_wrapper_v(T&& stage) {
       if constexpr (Callable<T>) {
@@ -125,6 +142,19 @@ namespace mr::detail {
         return FunctionWrapper<OutputT(InputT)>(
           [inner_stage=std::forward<T>(stage)](InputT input) mutable {
             auto task = mr::apply(inner_stage, std::move(input));
+            task->execute();
+            return task->result();
+          }
+        );
+      } else if constexpr (ApplicableRefT<T>) {
+        using RealStageT = typename T::type;
+
+        using InputT = input_t<RealStageT>;
+        using OutputT = output_t<RealStageT>;
+
+        return FunctionWrapper<OutputT(InputT)>(
+          [stage_ref = stage](InputT input) mutable {
+            auto task = mr::apply(stage_ref.get(), std::move(input));
             task->execute();
             return task->result();
           }
