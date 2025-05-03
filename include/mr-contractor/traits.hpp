@@ -91,16 +91,17 @@ namespace mr {
         using OutputT = typename Impl::OutputT;
     };
 
-  template <typename F> using input_t = CallableTraits<std::remove_cvref_t<F>>::InputT;
-  template <typename F> using output_t = CallableTraits<std::remove_cvref_t<F>>::OutputT;
+  template <typename FuncT> using input_t = CallableTraits<std::remove_cvref_t<FuncT>>::InputT;
+  template <typename FuncT> using output_t = CallableTraits<std::remove_cvref_t<FuncT>>::OutputT;
+  template <typename FuncT> using func_t = output_t<FuncT>(input_t<FuncT>);
 
-  // Concept to check if T is a valid callable with one argument
-  template<typename T>
+  // Concept to check if FuncT is a valid callable with one argument
+  template<typename FuncT>
     concept Callable = requires {
-      // Ensure CallableTraits<T> provides InputT and OutputT
-      typename input_t<T>;
-      typename output_t<T>;
-      // Ensure T can be called with InputT and returns OutputT
-      requires std::is_invocable_r_v<output_t<T>, T, input_t<T>>;
+      // Ensure CallableTraits provides InputT and OutputT
+      typename input_t<FuncT>;
+      typename output_t<FuncT>;
+      // Ensure FuncT can be called with InputT and returns OutputT
+      requires std::is_invocable_r_v<output_t<FuncT>, FuncT, input_t<FuncT>>;
     };
 }

@@ -6,125 +6,119 @@
 
 namespace mr::detail {
   template <typename T>
-    struct to_wrapper {
-      using type = T;
-    };
+    struct to_wrapper : std::type_identity<T> {};
+
   template <Callable T>
-    struct to_wrapper<T> {
-      using type = FunctionWrapper<output_t<T>(input_t<T>)>;
-    };
+    struct to_wrapper<T> : std::type_identity<FunctionWrapper<func_t<T>>> {};
+
   template <typename T> using to_wrapper_t = to_wrapper<T>::type;
   template <typename T> to_wrapper_t<T> to_wrapper_v(T &&stage);
 
   template <typename T>
-    struct to_wrapper_view {
-      using type = const T &;
-    };
+    struct to_wrapper_view : std::type_identity<const T&> {};
+
   template <Callable T>
-    struct to_wrapper_view<T> {
-      using type = FunctionView<output_t<T>(input_t<T>)>;
-    };
+    struct to_wrapper_view<T> : std::type_identity <FunctionView<func_t<T>>> {};
+
   template <typename T> using to_wrapper_view_t = to_wrapper_view<T>::type;
   template <typename T> to_wrapper_view_t<T> to_wrapper_view_v(const T &v) { return v; }
 }
 
 namespace mr {
-  template <typename ...> struct Sequence { static_assert(false, "ERROR: Some of the stages do not satisfy mr::StageT concept"); };
-  template <typename ...> struct Parallel { static_assert(false, "ERROR: Some of the stages do not satisfy mr::StageT concept"); };
+  template <typename ...>
+    struct Sequence { static_assert(false, "ERROR: Some of the stages do not satisfy mr::Stage concept"); };
 
-  template <typename T> constexpr bool is_sequence = false;
-  template <typename ...Us> constexpr bool is_sequence<Sequence<Us...>> = true;
-  template <typename T> concept SequenceT = is_sequence<T>;
+    template <typename ...>
+    struct Parallel { static_assert(false, "ERROR: Some of the stages do not satisfy mr::Stage concept"); };
 
-  template <typename T> constexpr bool is_parallel = false;
-  template <typename ...Us> constexpr bool is_parallel<Parallel<Us...>> = true;
-  template <typename T> concept ParallelT = is_parallel<T>;
+  template <typename T>
+    concept Applicable = InstanceOf<T, Parallel> || InstanceOf<T, Sequence>;
 
-  template <typename T> concept ApplicableT = ParallelT<T> || SequenceT<T>;
+  template <typename T>
+   concept ApplicableRef = InstanceOf<T, std::reference_wrapper>;
 
-  template <typename T> constexpr bool is_stage_reference = false;
-  template <ApplicableT T> constexpr bool is_stage_reference<std::reference_wrapper<T>> = true;
-  template <typename T> concept ApplicableRefT = is_stage_reference<T>;
-
-  template <typename T> concept StageT = Callable<T> || ApplicableT<T> || ApplicableRefT<T>;
+  template <typename T>
+    concept Stage = Callable<T> || Applicable<T> || ApplicableRef<T>;
 
   namespace detail {
-    template <ApplicableT T>
+    template <Applicable T>
       struct to_wrapper<T> {
         using type = FunctionWrapper<typename T::OutputT(typename T::InputT)>;
       };
 
-    template <ApplicableT T>
+    template <Applicable T>
       struct to_wrapper<std::reference_wrapper<T>> {
         using type = typename to_wrapper<T>::type;
       };
   }
 
-  template <StageT ...StageTs> requires (sizeof...(StageTs) > 0)
+  template <Stage ...StageTs> requires (sizeof...(StageTs) > 0)
     struct Parallel<StageTs...> {
-    private:
     public:
-      // for external use
+      static constexpr size_t sub_stages_count = sizeof...(StageTs);
+
       using InputT = mr::to_tuple_t<input_t<StageTs>...>;
       using OutputT = mr::to_tuple_t<output_t<StageTs>...>;
       using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
       using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
 
       using TaskT = Task<OutputT>;
-      using TaskImplT = detail::ParTaskImpl<sizeof...(StageTs), InputT, OutputT>;
+      using TaskImplT = detail::ParTaskImpl<std::integral_constant<size_t, sub_stages_count>, InputT, OutputT>;
+
+      constexpr Parallel(StageTs... s) : stages(std::forward_as_tuple(detail::to_wrapper_v(std::move(s))...)) {}
 
       TupleT stages;
-      constexpr Parallel(StageTs... s) : stages(std::forward_as_tuple(detail::to_wrapper_v(std::move(s))...)) {}
     };
 
-  template <StageT ...StageTs>
+  template <Stage... StageTs>
     struct CallableTraits<Parallel<StageTs...>> {
       using InputT = Parallel<StageTs...>::InputT;
       using OutputT = Parallel<StageTs...>::OutputT;
     };
 
-  template <typename ...StageTs>
-    Parallel(StageTs ...stages) -> Parallel<StageTs...>;
+  template <typename... StageTs>
+    Parallel(StageTs... stages) -> Parallel<StageTs...>;
 
-  template <StageT ...StageTs> requires (sizeof...(StageTs) > 0)
+  template <Stage... StageTs> requires (sizeof...(StageTs) > 0)
     struct Sequence<StageTs...> {
-    private:
-      // for internal use
-      static_assert(
-          mr::erase_v(0, mp::vector{mp::meta<input_t<StageTs>>...}) ==
-          mr::erase_v(sizeof...(StageTs) - 1, mp::vector{mp::meta<output_t<StageTs>>...})
-        , "Invalid transform chain (type mismatch)");
-
     public:
-      // for external use
+      static constexpr size_t sub_stages_count = sizeof...(StageTs);
+
       using InputT = at_t<0, input_t<StageTs>...>;
-      using OutputT = at_t<sizeof...(StageTs)-1, output_t<StageTs>...>;
+      using OutputT = at_t<sub_stages_count - 1, output_t<StageTs>...>;
       using VariantT = mr::to_variant_t<input_t<StageTs>..., output_t<StageTs>...>;
       using TupleT = mr::to_tuple_t<mr::detail::to_wrapper_t<StageTs>...>;
       using TaskT = Task<OutputT>;
-      using TaskImplT = detail::SeqTaskImpl<sizeof...(StageTs), VariantT, InputT, OutputT>;
+      using TaskImplT = detail::SeqTaskImpl<std::integral_constant<size_t, sub_stages_count>, VariantT, InputT, OutputT>;
+
+      constexpr Sequence(StageTs... s) : stages(detail::to_wrapper_v(std::move(s))...) {}
 
       TupleT stages;
-      constexpr Sequence(StageTs... s) : stages(detail::to_wrapper_v(std::move(s))...) {}
+
+    private:
+      static_assert(
+          mr::erase_v(0, mp::vector{mp::meta<input_t<StageTs>>...}) ==
+          mr::erase_v(sub_stages_count - 1, mp::vector{mp::meta<output_t<StageTs>>...})
+        , "Invalid transform chain (type mismatch)");
     };
 
-  template <StageT ...StageTs>
+  template <Stage... StageTs>
     struct CallableTraits<Sequence<StageTs...>> {
       using InputT = Sequence<StageTs...>::InputT;
       using OutputT = Sequence<StageTs...>::OutputT;
     };
 
-  template <typename ...StageTs>
+  template <typename... StageTs>
     Sequence(StageTs... stages) -> Sequence<StageTs...>;
 
-  template <StageT Stage>
-    struct CallableTraits<std::reference_wrapper<Stage>> {
-      using InputT = input_t<Stage>;
-      using OutputT = output_t<Stage>;
+  template <Stage StageT>
+    struct CallableTraits<std::reference_wrapper<StageT>> {
+      using InputT = input_t<StageT>;
+      using OutputT = output_t<StageT>;
     };
 
-  template <StageT S> typename S::TaskT apply(const S &stage, FunctionWrapper<typename S::InputT(void)> &&getter);
-  template <StageT S> typename S::TaskT apply(const S &stage, typename S::InputT initial);
+  template <Stage StageT> typename StageT::TaskT apply(const StageT &stage, FunctionWrapper<typename StageT::InputT(void)> &&getter);
+  template <Stage StageT> typename StageT::TaskT apply(const StageT &stage, typename StageT::InputT initial);
 }
 
 namespace mr::detail {
@@ -132,9 +126,9 @@ namespace mr::detail {
     to_wrapper_t<T> to_wrapper_v(T&& stage) {
       if constexpr (Callable<T>) {
         // Wrap raw callables directly
-        return FunctionWrapper<output_t<T>(input_t<T>)>(std::forward<T>(stage));
+        return FunctionWrapper<func_t<T>>(std::forward<T>(stage));
       }
-      else if constexpr (ApplicableT<T>) {
+      else if constexpr (Applicable<T>) {
         // Recursively convert nested Parallel/Sequence and wrap as function
         using InputT = typename T::InputT;
         using OutputT = typename T::OutputT;
@@ -146,11 +140,11 @@ namespace mr::detail {
             return task->result();
           }
         );
-      } else if constexpr (ApplicableRefT<T>) {
-        using RealStageT = typename T::type;
+      } else if constexpr (ApplicableRef<T>) {
+        using RealStage = typename T::type;
 
-        using InputT = input_t<RealStageT>;
-        using OutputT = output_t<RealStageT>;
+        using InputT = input_t<RealStage>;
+        using OutputT = output_t<RealStage>;
 
         return FunctionWrapper<OutputT(InputT)>(
           [stage_ref = stage](InputT input) mutable {

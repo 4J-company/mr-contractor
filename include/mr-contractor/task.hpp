@@ -30,16 +30,17 @@ namespace mr::detail {
       }
     };
 
-  template <size_t NumOfTasks, typename VariantT, typename InputT, typename ResultT>
+  // `NumOfTasks` must be a std::integral_constant instance to make `mr::InstanceOf<SeqTaskImpl>` work
+  template <typename NumOfTasks, typename VariantT, typename InputT, typename ResultT>
     struct SeqTaskImpl : TaskBase<ResultT> {
-      static constexpr auto size = NumOfTasks;
+      static constexpr auto size = NumOfTasks::value;
 
       InputT _initial;
 
       FunctionWrapper<InputT(void)> _getter = [this]() -> InputT { return _initial; };
       std::unique_ptr<VariantT> _object;
 
-      std::array<Contract, NumOfTasks> contracts {};
+      std::array<Contract, size> contracts {};
 
       std::atomic_flag completion_flag{};
 
@@ -101,29 +102,26 @@ namespace mr::detail {
         auto &v = *_object.get();
         auto &r = std::get<ResultT>(v);
 
-        return std::move(r);
+        return r;
       }
     };
 
-  template <typename T> constexpr bool is_seq_task_impl = false;
-  template <size_t N, typename ...Ts> constexpr bool is_seq_task_impl<SeqTaskImpl<N, Ts...>> = true;
-  template <typename T> concept SeqTaskImplInstance = is_seq_task_impl<T>;
-
-  template <size_t NumOfTasks, typename InputT, typename ResultT>
+  // `NumOfTasks` must be a std::integral_constant instance to make `mr::InstanceOf<ParTaskImpl>` work
+  template <typename NumOfTasks, typename InputT, typename ResultT>
     struct ParTaskImpl : TaskBase<ResultT> {
-      static constexpr auto size = NumOfTasks;
+      static constexpr auto size = NumOfTasks::value;
 
       InputT _initial;
 
       FunctionWrapper<InputT(void)> _getter = [this]() -> InputT { return _initial; };
       FunctionWrapper<void(void) noexcept> _on_finish = []() noexcept {};
 
-      std::array<Contract, NumOfTasks> contracts {};
+      std::array<Contract, size> contracts {};
 
       InputT _input;
       std::unique_ptr<ResultT> _object = std::make_unique<ResultT>();
       std::barrier<FunctionView<void() noexcept>> _barrier {
-        NumOfTasks + 1, // NOTE: +1 to account for the calling thread waiting on this
+        size + 1, // NOTE: +1 to account for the calling thread waiting on this
         FunctionView<void(void) noexcept>(_on_finish)
       };
 
@@ -162,13 +160,9 @@ namespace mr::detail {
 
       [[nodiscard]] ResultT result() override final {
         ResultT &r = *_object.get();
-        return std::move(r);
+        return r;
       }
     };
-
-  template <typename T> constexpr bool is_par_task_impl = false;
-  template <size_t S, typename ...Ts> constexpr bool is_par_task_impl<ParTaskImpl<S, Ts...>> = true;
-  template <typename T> concept ParTaskImplInstance = is_par_task_impl<T>;
 }
 
 namespace mr {

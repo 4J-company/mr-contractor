@@ -14,7 +14,7 @@ namespace mr::detail {
 
   // add(Seq, Func)
   template <size_t I, typename OutputT, typename InputT>
-    inline void add(SeqTaskImplInstance auto &task, FunctionView<OutputT(InputT)> stage) {
+    inline void add(InstanceOf<SeqTaskImpl> auto &task, FunctionView<OutputT(InputT)> stage) {
       auto contract = Executor::get().group.create_contract(
         [&task, stage]() mutable {
           if constexpr (std::is_same_v<InputT, void>) {
@@ -37,7 +37,7 @@ namespace mr::detail {
 
   // add(Par, Func)
   template <size_t I, typename OutputT, typename InputT>
-    inline void add(ParTaskImplInstance auto &task, FunctionView<OutputT(InputT)> stage) {
+    inline void add(InstanceOf<ParTaskImpl> auto &task, FunctionView<OutputT(InputT)> stage) {
       auto contract = Executor::get().group.create_contract(
         [&task, stage]() mutable {
           std::get<I>(*task._object.get()) = stage(std::move(std::get<I>(task._input)));
@@ -57,11 +57,10 @@ namespace mr::detail {
 // If any of them are not used in mr-importer, we will delete them
 #if 0
   // add(Seq, <Par/Seq>)
-  // TODO(dk6): rename T to StageT after concepts names refactoring
-  template <size_t I, ApplicableT T>
-    inline void add(SeqTaskImplInstance auto &task, const T &stage) {
-      using InputT = typename T::InputT;
-      using OutputT = typename T::OutputT;
+  template <size_t I, Applicable StageT>
+    inline void add(InstanceOf<SeqTaskImpl> auto &task, const StageT &stage) {
+      using InputT = typename StageT::InputT;
+      using OutputT = typename StageT::OutputT;
 
       FunctionWrapper<InputT(void)> getter = [&task]() {
         return std::get<InputT>(*task._object.get());
@@ -79,10 +78,10 @@ namespace mr::detail {
     }
 
   // add(Par, <Par/Seq>)
-  template <size_t I, ApplicableT T>
-    inline void add(ParTaskImplInstance auto &task, const T &stage) {
-      using InputT = typename T::InputT;
-      using OutputT = typename T::OutputT;
+  template <size_t I, Applicable StageT>
+    inline void add(InstanceOf<ParTaskImpl> auto &task, const StageT &stage) {
+      using InputT = typename StageT::InputT;
+      using OutputT = typename StageT::OutputT;
 
       FunctionWrapper<InputT(void)> getter = [&task]() {
         return std::get<I>(*task._input);
@@ -100,9 +99,9 @@ namespace mr::detail {
     }
 
   // add(Seq, StageRef)
-  template <size_t I, ApplicableRefT RefT>
-    inline void add(SeqTaskImplInstance auto &task, RefT stage) {
-      using InternalT = typename RefT::type;
+  template <size_t I, ApplicableRef StageRefT>
+    inline void add(InstanceOf<SeqTaskImpl> auto &task, StageRefT stage) {
+      using InternalT = typename StageRefT::type;
 
       using InputT = input_t<InternalT>;
       using OutputT = output_t<InternalT>;
@@ -122,9 +121,9 @@ namespace mr::detail {
     }
 
   // add(Par, StageRef)
-  template <size_t I, ApplicableRefT RefT>
-    inline void add(ParTaskImplInstance auto &task, RefT stage) {
-      using InternalT = typename RefT::type;
+  template <size_t I, ApplicableRef StageRefT>
+    inline void add(InstanceOf<ParTaskImpl> auto &task, StageRefT stage) {
+      using InternalT = typename StageRefT::type;
 
       using InputT = input_t<InternalT>;
       using OutputT = output_t<InternalT>;
@@ -146,29 +145,29 @@ namespace mr::detail {
 }
 
 namespace mr {
-  // TODO(dk6): use ApplicableT instead StageT
-  template <StageT S>
-    typename S::TaskT apply(const S &stage, FunctionWrapper<typename S::InputT(void)> &&getter) {
-      using TaskImplT = S::TaskImplT;
-      using TaskT = S::TaskT;
+  // TODO(dk6): use Applicable instead Stage
+  template <Stage StageT>
+    typename StageT::TaskT apply(const StageT &stage, FunctionWrapper<typename StageT::InputT(void)> &&getter) {
+      using TaskImplT = StageT::TaskImplT;
+      using TaskT = StageT::TaskT;
 
       auto task = std::make_unique<TaskImplT>(std::move(getter));
       [&task, &stage]<size_t ...Is>(std::index_sequence<Is...>) {
         (detail::add<Is>(*task.get(), detail::to_wrapper_view_v(std::get<Is>(stage.stages))), ...);
-      }(std::make_index_sequence<std::tuple_size_v<decltype(stage.stages)>>());
+      }(std::make_index_sequence<StageT::sub_stages_count>());
 
       return task;
     }
 
-  template <StageT S>
-    typename S::TaskT apply(const S &stage, typename S::InputT initial) {
-      using TaskImplT = S::TaskImplT;
-      using TaskT = S::TaskT;
+  template <Stage StageT>
+    typename StageT::TaskT apply(const StageT& stage, typename StageT::InputT initial) {
+      using TaskImplT = StageT::TaskImplT;
+      using TaskT = StageT::TaskT;
 
       auto task = std::make_unique<TaskImplT>(std::move(initial));
       [&task, &stage]<size_t ...Is>(std::index_sequence<Is...>) {
         (detail::add<Is>(*task.get(), detail::to_wrapper_view_v(std::get<Is>(stage.stages))), ...);
-      }(std::make_index_sequence<std::tuple_size_v<decltype(stage.stages)>>());
+      }(std::make_index_sequence<StageT::sub_stages_count>());
 
       return task;
     }
