@@ -28,7 +28,7 @@ namespace mr::detail {
       }
     };
 
-  template <size_t NumOfTasks, typename VariantT, typename InputT, typename ResultT>
+  template <size_t NumOfTasks, typename VariantT, std::copyable InputT, typename ResultT>
     struct SeqTaskImpl : TaskBase<ResultT> {
       static constexpr auto size = NumOfTasks;
 
@@ -81,6 +81,7 @@ namespace mr::detail {
       }
 
       void update_object() override final {
+        this->completion_flag.clear();
         _object = std::make_unique<VariantT>(_getter());
       }
 
