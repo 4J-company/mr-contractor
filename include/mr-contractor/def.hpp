@@ -21,6 +21,18 @@ namespace mr {
   template <typename ...Ts>
     using to_tuple_t = std::tuple<Ts...>;
 
+  template<template<typename...> typename TemplateT, typename InstanceT>
+    constexpr bool is_instance_of = false;
+
+  template<template<typename...> typename TemplateT, typename... Ts>
+    constexpr bool is_instance_of<TemplateT, TemplateT<Ts...>> = true;
+
+  // works only for templates without NTTP
+  // note: seems there's no way to pass any arbitrary templated type as `TemplateT`, because
+  //       type, non-type and template template parameters can't be generalized by `typename...` nor `auto...`
+  template<typename InstanceT, template<typename...> typename TemplateT>
+    concept InstanceOf = is_instance_of<TemplateT, InstanceT>;
+
   template <typename ...Ts>
     constexpr mp::vector<mp::info> unique_v(std::ranges::range auto &&ts) {
       mp::vector<mp::info> res;
