@@ -18,14 +18,22 @@ namespace mr {
       return executor;
     }
 
-    void set_thread_count(int n) {
-      resize(n);
+    void thread_count(int n) {
+      if (n != thread_count()) {
+        resize(n);
+      }
+    }
+
+    int thread_count() const {
+      return threads.size();
     }
 
   private:
     void resize(int n) {
+      threads.clear();
+      threads.resize(n);
       for (int i = 0; i < n; i++) {
-        threads.emplace_back(
+        threads[i] = std::jthread(
           [this](const auto &token) {
             while (not token.stop_requested()) {
               group.execute_next_contract();
