@@ -20,7 +20,7 @@ inline static TaskMap flat_task_map = create_flat_task_map();
 
 void BM_NestedTasks(benchmark::State& state) {
   auto &task = nested_task_map[state.range(0)];
-  mr::Executor::get().thread_count(state.range(1));
+  // mr::Executor::get().thread_count(state.range(1));
   for(auto _ : state) {
     auto x = task->execute().result();
     benchmark::DoNotOptimize(x);
@@ -28,14 +28,15 @@ void BM_NestedTasks(benchmark::State& state) {
 }
 BENCHMARK(BM_NestedTasks)
   ->RangeMultiplier(2)
-  ->Ranges({{1, 128}, {1, std::thread::hardware_concurrency()}})
+  ->Range(1, 128)
+  // ->Ranges({{1, 128}, {1, std::thread::hardware_concurrency()}})
   ->Unit(benchmark::kMillisecond)
   ->Complexity()
 ;
 
 void BM_FlatTasks(benchmark::State& state) {
   auto &task = nested_task_map[state.range(0)];
-  mr::Executor::get().thread_count(state.range(1));
+  // mr::Executor::get().thread_count(state.range(1));
   for(auto _ : state) {
     auto x = task->execute().result();
     benchmark::DoNotOptimize(x);
@@ -43,7 +44,8 @@ void BM_FlatTasks(benchmark::State& state) {
 }
 BENCHMARK(BM_FlatTasks)
   ->RangeMultiplier(2)
-  ->Ranges({{1, 128}, {1, std::thread::hardware_concurrency()}})
+  ->Range(1, 128)
+  // ->Ranges({{1, 128}, {1, std::thread::hardware_concurrency()}})
   ->Unit(benchmark::kMillisecond)
   ->Complexity()
 ;
