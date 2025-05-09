@@ -3,11 +3,9 @@
 #include <atomic>
 #include <barrier>
 #include <cstddef>
-#include <vector>
 #include <memory>
 
 #include "mr-contractor/def.hpp"
-#include "traits.hpp"
 
 namespace mr::detail {
   // TODO:
@@ -31,7 +29,7 @@ namespace mr::detail {
     };
 
   // `NumOfTasks` must be a std::integral_constant instance to make `mr::InstanceOf<SeqTaskImpl>` work
-  template <typename NumOfTasks, typename VariantT, typename InputT, typename ResultT>
+  template <typename NumOfTasks, typename VariantT, std::copyable InputT, typename ResultT>
     struct SeqTaskImpl : TaskBase<ResultT> {
       static constexpr auto size = NumOfTasks::value;
 
@@ -84,6 +82,7 @@ namespace mr::detail {
       }
 
       void update_object() override final {
+        this->completion_flag.clear();
         _object = std::make_unique<VariantT>(_getter());
       }
 

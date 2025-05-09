@@ -5,12 +5,14 @@ set(MR_CONTRACTOR_PROJECT_NAME mr-contractor)
 set(MR_CONTRACTOR_LIB_NAME     mr-contractor-lib)
 set(MR_CONTRACTOR_BENCH_NAME   mr-contractor-bench)
 set(MR_CONTRACTOR_TESTS_NAME   mr-contractor-tests)
+set(MR_CONTRACTOR_EXAMPLE_NAME mr-contractor-example)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # options
 option(MR_CONTRACTOR_ENABLE_BENCHMARK "Whether benchmarks are downloaded and built" ON)
 option(MR_CONTRACTOR_ENABLE_TESTING   "Whether tests are downloaded and built"      ON)
+option(MR_CONTRACTOR_ENABLE_EXAMPLE   "Whether tests are downloaded and built"      OFF)
 
 project(
   ${MR_CONTRACTOR_PROJECT_NAME}
@@ -48,5 +50,13 @@ if (MR_CONTRACTOR_ENABLE_BENCHMARK)
   target_link_libraries(${MR_CONTRACTOR_BENCH_NAME} PRIVATE
     ${MR_CONTRACTOR_LIB_NAME}
     ${MR_CONTRACTOR_BENCH_DEPS}
+  )
+endif()
+
+# example
+if (MR_CONTRACTOR_ENABLE_EXAMPLE)
+  add_executable(${MR_CONTRACTOR_EXAMPLE_NAME} example/main.cpp)
+  target_link_libraries(${MR_CONTRACTOR_EXAMPLE_NAME} PRIVATE
+    ${MR_CONTRACTOR_LIB_NAME}
   )
 endif()

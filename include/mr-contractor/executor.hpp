@@ -18,10 +18,22 @@ namespace mr {
       return executor;
     }
 
+    void thread_count(int n) {
+      if (n != thread_count()) {
+        resize(n);
+      }
+    }
+
+    int thread_count() const {
+      return threads.size();
+    }
+
   private:
-    Executor() noexcept {
-      for (int i = 0; i < threadcount; i++) {
-        threads.emplace_back(
+    void resize(int n) {
+      threads.clear();
+      threads.resize(n);
+      for (int i = 0; i < n; i++) {
+        threads[i] = std::jthread(
           [this](const auto &token) {
             while (not token.stop_requested()) {
               group.execute_next_contract();
@@ -29,6 +41,10 @@ namespace mr {
           }
         );
       }
+    }
+
+    Executor() noexcept {
+      resize(threadcount);
     }
   };
 }

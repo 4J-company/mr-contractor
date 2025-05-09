@@ -1,10 +1,3 @@
-# Enable CPM.cmake
-include(FetchContent)
-set(CPM_DOWNLOAD_VERSION 0.38.5)
-file(DOWNLOAD https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-     ${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
-include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
-
 # Platform-specific settings
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
