@@ -7,7 +7,6 @@
 #include <ranges>
 
 #include <mp/mp>
-#include <BS_thread_pool.hpp> // BS::thread_pool
 #include <work_contract/work_contract.h>
 
 #include "traits.hpp"
