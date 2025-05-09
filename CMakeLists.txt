@@ -12,7 +12,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 # options
 option(MR_CONTRACTOR_ENABLE_BENCHMARK "Whether benchmarks are downloaded and built" ON)
 option(MR_CONTRACTOR_ENABLE_TESTING   "Whether tests are downloaded and built"      ON)
-option(MR_CONTRACTOR_ENABLE_EXAMPLE   "Whether tests are downloaded and built"      ON)
+option(MR_CONTRACTOR_ENABLE_EXAMPLE   "Whether tests are downloaded and built"      OFF)
 
 project(
   ${MR_CONTRACTOR_PROJECT_NAME}

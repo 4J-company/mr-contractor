@@ -37,7 +37,7 @@ struct Image {
 template <>
 struct TaskPrototypeBuilder<Image, std::filesystem::path> {
   inline static auto & create() {
-    static prototype = mr::Sequence {
+    static auto prototype = mr::Sequence {
       [](std::filesystem::path filename) -> Image {
         std::ifstream input_file(filename.string(), std::ios::binary | std::ios::ate);
 
