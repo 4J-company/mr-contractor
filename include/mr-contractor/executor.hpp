@@ -12,6 +12,7 @@ namespace mr {
 
     bcpp::work_contract_group group;
     std::vector<std::jthread> threads;
+    std::mutex resize_mutex;
 
     static Executor & get() noexcept {
       static Executor executor {};
@@ -19,9 +20,13 @@ namespace mr {
     }
 
     void thread_count(int n) {
-      if (n != thread_count()) {
-        resize(n);
+      assert(n > 0);
+
+      if (n == thread_count()) {
+        return;
       }
+
+      resize(std::clamp(n, 1, threadcount));
     }
 
     int thread_count() const {
@@ -29,17 +34,26 @@ namespace mr {
     }
 
   private:
+
     void resize(int n) {
-      threads.clear();
-      threads.resize(n);
-      for (int i = 0; i < n; i++) {
-        threads[i] = std::jthread(
-          [this](const auto &token) {
-            while (not token.stop_requested()) {
-              group.execute_next_contract();
-            }
-          }
-        );
+      std::lock_guard l(resize_mutex);
+
+      auto worker = [this](const std::stop_token &token) {
+        while (not token.stop_requested()) {
+          group.execute_next_contract();
+        }
+      };
+
+      if (n < threads.size()) {
+        for (int i = n; i < threads.size(); i++) {
+          threads[i].request_stop();
+        }
+        threads.resize(n);
+      }
+      else {
+        for (int i = threads.size(); i < n; i++) {
+          threads.emplace_back(worker);
+        }
       }
     }
 
